@@ -60,6 +60,10 @@ def battle(pokemon1, pokemon2):
     abilities1 = parse_abilities(pokemon1["abilities"])
     abilities2 = parse_abilities(pokemon2["abilities"])
 
+    # Réinitialiser les points de vie à chaque bataille
+    stats1["hp"] = parse_stats(pokemon1["stats"])["hp"]
+    stats2["hp"] = parse_stats(pokemon2["stats"])["hp"]
+
     # Détermination de la vitesse pour savoir qui frappe en premier
     if stats1["speed"] > stats2["speed"]:
         first, second = pokemon1, pokemon2
@@ -78,9 +82,9 @@ def battle(pokemon1, pokemon2):
         first_ability = random.choice(first_abilities)
         second_ability = random.choice(second_abilities)
 
-        print(f"\nRound {round_number}: {first['name']} utilise {first_ability} contre {second['name']}")
+        print(f"\nTour {round_number}: {first['name']} utilise {first_ability} contre {second['name']}")
         # Première attaque
-        damage = stats1["attack"] + stats1["special-attack"] - stats2["defense"] - stats2["special-defense"]
+        damage = first_stats["attack"] + first_stats["special-attack"] - second_stats["defense"] - second_stats["special-defense"]
         damage = max(damage, 10)  # Minimum de 10 dégâts par capacité
         second_stats["hp"] -= damage
         if second_stats["hp"] <= 0:
@@ -90,7 +94,7 @@ def battle(pokemon1, pokemon2):
 
         # Deuxième attaque
         print(f"{second['name']} utilise {second_ability} contre {first['name']}")
-        damage = stats2["attack"] + stats2["special-attack"] - stats1["defense"] - stats1["special-defense"]
+        damage = second_stats["attack"] + second_stats["special-attack"] - first_stats["defense"] - first_stats["special-defense"]
         damage = max(damage, 10)  # Minimum de 10 dégâts par capacité
         first_stats["hp"] -= damage
         if first_stats["hp"] <= 0:
@@ -119,7 +123,7 @@ def determine_tournament_winner(bracket):
     print("Bataille finale :")
     final_match = bracket[0]
     final_winner = battle(final_match[0], final_match[1])
-    print(f"Le vainqueur final est : [92m{final_winner['name']}[0m")
+    print(f"\nLe vainqueur final est : \033[92m{final_winner['name']}\033[0m")
 
 
 if __name__ == "__main__":
@@ -127,7 +131,15 @@ if __name__ == "__main__":
     table_name = "pokemon"
 
     # Sélectionner 16 Pokémon aléatoires via la fonction select_random_pokemons
-    pokemon_ids = select_random_pokemons()
+    # pokemon_ids = select_random_pokemons()
+
+    # Sélectionner 16 Pokémon aléatoires depuis la base de données
+    with sqlite3.connect(db_name) as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT id FROM {table_name}")
+        all_ids = [row[0] for row in cursor.fetchall()]
+        pokemon_ids = random.sample(all_ids, 16)
+
 
     # Récupérer 16 personnages depuis la base de données
     characters = get_characters(db_name, table_name, pokemon_ids)
