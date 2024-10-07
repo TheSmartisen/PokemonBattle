@@ -103,18 +103,23 @@ def battle(pokemon1, pokemon2):
 
 # Fonction pour sélectionner un vainqueur pour chaque match jusqu'à définir un vainqueur final
 def determine_tournament_winner(bracket):
-    round_number = 1
+    tour_number = 1
     while len(bracket) > 1:
-        print(f"\nRound {round_number} :")
-        next_round = []
+        print(f"\nTour {tour_number} :")
+        next_tour = []
         for match in bracket:
             winner = battle(match[0], match[1])
-            next_round.append(winner)
+            next_tour.append(winner)
             print(
                 f"\033[92m{winner['name']}\033[0m vs \033[91m{match[1]['name'] if match[0]['name'] == winner['name'] else match[0]['name']}\033[0m -> Vainqueur : \033[92m{winner['name']}\033[0m")
-        bracket = [(next_round[i], next_round[i + 1]) for i in range(0, len(next_round), 2)]
-        round_number += 1
-    print(f"\nLe vainqueur final est : \033[92m{bracket[0][0]['name']}\033[0m")
+        bracket = [(next_tour[i], next_tour[i + 1]) for i in range(0, len(next_tour), 2)]
+        tour_number += 1
+
+    # Afficher le détail de la bataille finale
+    print("Bataille finale :")
+    final_match = bracket[0]
+    final_winner = battle(final_match[0], final_match[1])
+    print(f"Le vainqueur final est : [92m{final_winner['name']}[0m")
 
 
 if __name__ == "__main__":
