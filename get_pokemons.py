@@ -26,9 +26,9 @@ def get_pokemon_data(pokemon_id: int) -> Optional[dict]:
         response.raise_for_status()  # Raise an exception for HTTP errors
         return response.json()
     except requests.HTTPError as http_err:
-        print(f"HTTP error occurred for Pokémon ID {pokemon_id}: {http_err}")
+        print(f"\033[91mHTTP error occurred for Pokémon ID {pokemon_id}: {http_err}\033[0m\n")
     except Exception as err:
-        print(f"An error occurred for Pokémon ID {pokemon_id}: {err}")
+        print(f"\033[91mAn error occurred for Pokémon ID {pokemon_id}: {err}\033[0m\n")
     return None
 
 def create_database(conn: sqlite3.Connection):
@@ -96,6 +96,21 @@ def check_pokemon_in_db(conn: sqlite3.Connection, pokemon_id: int) -> bool:
     cursor = conn.execute("SELECT 1 FROM pokemon WHERE id = ?", (pokemon_id,))
     return cursor.fetchone() is not None
 
+def get_pokemon_name_from_db(conn: sqlite3.Connection, pokemon_id: int) -> Optional[str]:
+    """
+    Retrieve the name of a Pokémon by its ID from the database.
+
+    Args:
+        conn (sqlite3.Connection): The SQLite database connection.
+        pokemon_id (int): The ID of the Pokémon.
+
+    Returns:
+        str or None: The name of the Pokémon if found, else None.
+    """
+    cursor = conn.execute("SELECT name FROM pokemon WHERE id = ?", (pokemon_id,))
+    result = cursor.fetchone()
+    return result[0] if result else None
+
 def select_random_pokemons() -> List[int]:
     """
     Select 16 random Pokémon IDs, ensure their data is stored in the database,
@@ -120,7 +135,8 @@ def select_random_pokemons() -> List[int]:
                         continue  # Skip if we've already tried this Pokémon ID
                     
                     if check_pokemon_in_db(conn, pid):
-                        print(f"Pokémon ID {pid} already in the database.")
+                        pokemon_name = get_pokemon_name_from_db(conn, pid)  # Retrieve the Pokémon's name
+                        print(f"Pokémon ID \033[92m{pid} ({pokemon_name})\033[0m already in the database.\n")  # Show ID and name in green
                         selected_ids.append(pid)
                     else:
                         # Fetch data from API if not in database
@@ -130,7 +146,7 @@ def select_random_pokemons() -> List[int]:
                         if pokemon_data:
                             insert_pokemon(conn, pokemon_data)
                             selected_ids.append(pid)
-                            print(f"Stored data for Pokémon ID {pid}: {pokemon_data['name']}.")
+                            print(f"Stored data for Pokémon ID \033[94m{pid}\033[0m: \033[94m{pokemon_data['name']}\033[0m.\n")
                         else:
                             tried_ids.add(pid)  # Mark as tried if fetch failed
                     
@@ -139,7 +155,7 @@ def select_random_pokemons() -> List[int]:
         return selected_ids
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"\033[91mAn error occurred: {e}\033[0m")
         return []
 
 # Optional: Allow running this script directly for testing
