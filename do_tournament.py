@@ -39,6 +39,12 @@ def parse_stats(stats_string):
     return stats
 
 
+# Fonction pour analyser les capacités à partir de la chaîne de texte
+def parse_abilities(abilities_string):
+    abilities = abilities_string.split(", ")
+    return [ability.strip() for ability in abilities]
+
+
 # Fonction pour créer la matrice d'un tournoi de 16 personnages
 def create_tournament_bracket(characters):
     random.shuffle(characters)
@@ -48,38 +54,58 @@ def create_tournament_bracket(characters):
 
 # Fonction pour calculer le vainqueur d'une bataille entre deux Pokémon
 def battle(pokemon1, pokemon2):
-    # Analyser les statistiques de chaque Pokémon
+    # Analyser les statistiques et les capacités de chaque Pokémon
     stats1 = parse_stats(pokemon1["stats"])
     stats2 = parse_stats(pokemon2["stats"])
+    abilities1 = parse_abilities(pokemon1["abilities"])
+    abilities2 = parse_abilities(pokemon2["abilities"])
 
-    # Calcul du score basé sur l'expérience de base, les stats et un facteur aléatoire
-    base_exp_factor = 0.5
-    stats_factor = 0.3
-    random_factor = 0.2
-
-    # Calcul du total des stats pour chaque Pokémon
-    total_stats_1 = sum(stats1.values())
-    total_stats_2 = sum(stats2.values())
-
-    # Calcul du score final pour chaque Pokémon
-    score1 = (pokemon1["base_experience"] * base_exp_factor) + (total_stats_1 * stats_factor) + (
-                random.randint(0, 50) * random_factor)
-    score2 = (pokemon2["base_experience"] * base_exp_factor) + (total_stats_2 * stats_factor) + (
-                random.randint(0, 50) * random_factor)
-
-    print(f"Bataille entre {pokemon1['name']} (Score : {score1}) vs {pokemon2['name']} (Score : {score2})")
-
-    if score1 > score2:
-        return pokemon1
+    # Détermination de la vitesse pour savoir qui frappe en premier
+    if stats1["speed"] > stats2["speed"]:
+        first, second = pokemon1, pokemon2
+        first_stats, second_stats = stats1, stats2
+        first_abilities, second_abilities = abilities1, abilities2
     else:
-        return pokemon2
+        first, second = pokemon2, pokemon1
+        first_stats, second_stats = stats2, stats1
+        first_abilities, second_abilities = abilities2, abilities1
+
+    # Calcul des dégâts infligés
+    round_number = 1
+
+    while first_stats["hp"] > 0 and second_stats["hp"] > 0:
+        # Choisir une capacité aléatoire pour l'attaque
+        first_ability = random.choice(first_abilities)
+        second_ability = random.choice(second_abilities)
+
+        print(f"\nRound {round_number}: {first['name']} utilise {first_ability} contre {second['name']}")
+        # Première attaque
+        damage = stats1["attack"] + stats1["special-attack"] - stats2["defense"] - stats2["special-defense"]
+        damage = max(damage, 10)  # Minimum de 10 dégâts par capacité
+        second_stats["hp"] -= damage
+        if second_stats["hp"] <= 0:
+            print(f"{second['name']} est KO!")
+            return first
+        print(f"{second['name']} a {second_stats['hp']} points de vie restants.")
+
+        # Deuxième attaque
+        print(f"{second['name']} utilise {second_ability} contre {first['name']}")
+        damage = stats2["attack"] + stats2["special-attack"] - stats1["defense"] - stats1["special-defense"]
+        damage = max(damage, 10)  # Minimum de 10 dégâts par capacité
+        first_stats["hp"] -= damage
+        if first_stats["hp"] <= 0:
+            print(f"{first['name']} est KO!")
+            return second
+        print(f"{first['name']} a {first_stats['hp']} points de vie restants.")
+
+        round_number += 1
 
 
 # Fonction pour sélectionner un vainqueur pour chaque match jusqu'à définir un vainqueur final
 def determine_tournament_winner(bracket):
     round_number = 1
     while len(bracket) > 1:
-        print(f"\n\033[94mRound {round_number} :\033[0m")
+        print(f"\nRound {round_number} :")
         next_round = []
         for match in bracket:
             winner = battle(match[0], match[1])
@@ -103,7 +129,7 @@ if __name__ == "__main__":
     if len(characters) == 16:
         # Créer la matrice du tournoi
         bracket = create_tournament_bracket(characters)
-        print("\033[94mMatrice du tournoi :\033[0m")
+        print("Matrice du tournoi :")
         for match in bracket:
             print(f"{match[0]['name']} vs {match[1]['name']}")
 
