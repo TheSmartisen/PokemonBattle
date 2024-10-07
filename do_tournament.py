@@ -79,7 +79,7 @@ def battle(pokemon1, pokemon2):
 def determine_tournament_winner(bracket):
     round_number = 1
     while len(bracket) > 1:
-        print(f"\nRound {round_number} :")
+        print(f"\n\033[94mRound {round_number} :\033[0m")
         next_round = []
         for match in bracket:
             winner = battle(match[0], match[1])
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     if len(characters) == 16:
         # Créer la matrice du tournoi
         bracket = create_tournament_bracket(characters)
-        print("Matrice du tournoi :")
+        print("\033[94mMatrice du tournoi :\033[0m")
         for match in bracket:
             print(f"{match[0]['name']} vs {match[1]['name']}")
 
