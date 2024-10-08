@@ -3,21 +3,26 @@ import random
 import curses
 import time
 
+# Function to create HP bar using curses
+def hp_bar(stdscr, y, x, current_hp, max_hp, length=40, damage=0):
+    # Ensure current_hp is within valid bounds
+    current_hp = max(0, min(current_hp, max_hp))
 
-# Function to create HP bar
-def hp_bar(current_hp, max_hp, length=40, damage=0):
+    # Calculate the segments of the HP bar
     hp_ratio = current_hp / max_hp
-    filled_length = int(length * hp_ratio)
-    damage_length = min(int(length * (damage / max_hp)), filled_length)
+    filled_length = round(length * hp_ratio)
+
+    # Calculate the length of the red part for the most recent damage
+    damage_length = min(round(length * (damage / max_hp)), filled_length)
     remaining_length = filled_length - damage_length
 
-    bar = (
-        '█' * remaining_length +
-        '░' * damage_length +
-        ' ' * (length - filled_length)
-    )
-    return f'[{bar}] {current_hp}/{max_hp} HP'
-
+    # Display the HP bar at the specified position
+    stdscr.addstr(y, x, "[", curses.color_pair(3))  # Add the opening bracket in white
+    stdscr.addstr("█" * remaining_length, curses.color_pair(1))  # Green for remaining HP
+    stdscr.addstr("░" * damage_length, curses.color_pair(2))     # Red for most recent damage
+    stdscr.addstr("-" * (length - filled_length), curses.color_pair(3))  # White for missing HP
+    stdscr.addstr("]", curses.color_pair(3))  # Closing bracket in white
+    stdscr.addstr(f" {current_hp}/{max_hp} HP", curses.color_pair(3))  # Display the HP count
 
 # Function to retrieve 16 characters from the database
 def get_characters(db_name, table_name, pokemon_ids):
@@ -69,6 +74,11 @@ def display_bracket(screen, bracket, winners, y_offset=0):
         if winner:
             screen.addstr(y_offset + i * 2 + 1, 22, f"Winner: {winner['name'].capitalize()}")
 
+# Function to clear the damage text area
+def clear_damage_text(screen, start_y, num_lines):
+    for i in range(num_lines):
+        screen.move(start_y + i, 0)
+        screen.clrtoeol()
 
 # Function for a battle between two Pokémon
 def battle(screen, pokemon1, pokemon2, bracket, winners):
@@ -78,8 +88,8 @@ def battle(screen, pokemon1, pokemon2, bracket, winners):
     abilities2 = parse_abilities(pokemon2["abilities"])
 
     # Initialize HP for the battle
-    stats1["hp"] = parse_stats(pokemon1["stats"])["hp"]
-    stats2["hp"] = parse_stats(pokemon2["stats"])["hp"]
+    current_hp1 = stats1["hp"]
+    current_hp2 = stats2["hp"]
 
     # Determine which Pokémon goes first
     if stats1["speed"] > stats2["speed"]:
@@ -93,70 +103,88 @@ def battle(screen, pokemon1, pokemon2, bracket, winners):
 
     round_number = 1
 
-    while first_stats["hp"] > 0 and second_stats["hp"] > 0:
-        # Clear the screen before each round
-        screen.clear()
+    # Draw both Pokémon with full health at the start of the match
+    screen.clear()
+    display_bracket(screen, bracket, winners)
+    screen.addstr(20, 2, f"{first['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green with reserved space
+    hp_bar(screen, 20, 24, current_hp1, stats1["hp"], length=40)  # Start health bar at column 24
+    screen.addstr(21, 2, f"{second['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green with reserved space
+    hp_bar(screen, 21, 24, current_hp2, stats2["hp"], length=40)  # Start health bar at column 24
+    screen.refresh()
+    time.sleep(1.5)
 
-        # Display the tournament bracket
-        display_bracket(screen, bracket, winners)
+    while current_hp1 > 0 and current_hp2 > 0:
+        # Clear damage text area for a clean slate before the next round
+        clear_damage_text(screen, 23, 7)
 
-        # Display current HP bars and align them
-        max_hp1 = parse_stats(first['stats'])["hp"]
-        max_hp2 = parse_stats(second['stats'])["hp"]
-        screen.addstr(20, 12, f"{first['name'].capitalize():<10} HP: {hp_bar(first_stats['hp'], max_hp1, length=40)}", curses.color_pair(1))
-        screen.addstr(21, 12, f"{second['name'].capitalize():<10} HP: {hp_bar(second_stats['hp'], max_hp2, length=40)}", curses.color_pair(1))
-        
-        # Choose a random ability and calculate damage
+        # First Pokémon attacks
         first_ability = random.choice(first_abilities)
-        second_ability = random.choice(second_abilities)
-        
-        screen.addstr(23, 2, f"Round {round_number}:")
-        screen.addstr(24, 2, f"{first['name'].capitalize()} uses ", curses.color_pair(1))
-        screen.addstr(f"{first_ability} on {second['name'].capitalize()}!", curses.color_pair(2))
+        screen.addstr(23, 2, f"Round {round_number}:", curses.color_pair(3))  # Round number in white
+        screen.addstr(24, 2, f"{first['name'].capitalize()} ", curses.color_pair(1))  # Pokémon name in green
+        screen.addstr("uses ", curses.color_pair(3))  # Action text in white
+        screen.addstr(f"{first_ability} ", curses.color_pair(2))  # Attack name in red
+        screen.addstr(f"on {second['name'].capitalize()}!", curses.color_pair(3))  # Rest of the text in white
 
+        # Calculate damage
         damage = first_stats["attack"] + first_stats["special-attack"] - second_stats["defense"] - second_stats["special-defense"]
         damage = max(damage, 10)  # Minimum of 10 damage per attack
-        second_stats["hp"] -= damage
-        if second_stats["hp"] <= 0:
-            screen.addstr(25, 2, f"{second['name'].capitalize()} is KO!", curses.color_pair(2))
-            screen.addstr(21, 12, f"{second['name'].capitalize():<10} HP: {hp_bar(second_stats['hp'], max_hp2, length=40, damage=damage)}", curses.color_pair(1))
+        current_hp2 -= damage
+        current_hp2 = max(0, current_hp2)  # Ensure HP doesn't go below 0
+
+        # Update the HP bar of the second Pokémon to reflect the damage taken (red section only)
+        screen.addstr(21, 2, f"{second['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green with reserved space
+        hp_bar(screen, 21, 24, current_hp2 + damage, stats2["hp"], length=40, damage=damage)
+        screen.addstr(25, 2, f"{second['name'].capitalize()} ", curses.color_pair(1))  # Pokémon name in green
+        screen.addstr("takes ", curses.color_pair(3))  # Action text in white
+        screen.addstr(f"{damage} damage!", curses.color_pair(2))  # Damage value in red
+        screen.refresh()
+        time.sleep(1.5)
+
+        # Check if the second Pokémon is KO'd
+        if current_hp2 <= 0:
+            screen.addstr(26, 2, f"{second['name'].capitalize()} is KO!", curses.color_pair(2))  # KO message in red
             screen.refresh()
             time.sleep(2)
             return first
 
-        screen.addstr(25, 2, f"{second['name'].capitalize()} takes ", curses.color_pair(2))
-        screen.addstr(f"{damage} damage!", curses.color_pair(2))
+        # Clear damage text area for the next round
+        clear_damage_text(screen, 27, 7)
 
-        # Update the HP bars showing the damage done
-        screen.addstr(21, 12, f"{second['name'].capitalize():<10} HP: {hp_bar(second_stats['hp'], max_hp2, length=40, damage=damage)}", curses.color_pair(1))
-        screen.refresh()
-        time.sleep(2)
+        # Second Pokémon attacks
+        second_ability = random.choice(second_abilities)
+        screen.addstr(27, 2, f"{second['name'].capitalize()} ", curses.color_pair(1))  # Pokémon name in green
+        screen.addstr("uses ", curses.color_pair(3))  # Action text in white
+        screen.addstr(f"{second_ability} ", curses.color_pair(2))  # Attack name in red
+        screen.addstr(f"on {first['name'].capitalize()}!", curses.color_pair(3))  # Rest of the text in white
 
-        # Let the second Pokémon attack
-        screen.addstr(26, 2, f"{second['name'].capitalize()} uses ", curses.color_pair(1))
-        screen.addstr(f"{second_ability} on {first['name'].capitalize()}!", curses.color_pair(2))
-
+        # Calculate damage
         damage = second_stats["attack"] + second_stats["special-attack"] - first_stats["defense"] - first_stats["special-defense"]
         damage = max(damage, 10)  # Minimum of 10 damage per attack
-        first_stats["hp"] -= damage
-        if first_stats["hp"] <= 0:
-            screen.addstr(27, 2, f"{first['name'].capitalize()} is KO!", curses.color_pair(2))
-            screen.addstr(20, 12, f"{first['name'].capitalize():<10} HP: {hp_bar(first_stats['hp'], max_hp1, length=40, damage=damage)}", curses.color_pair(1))
+        current_hp1 -= damage
+        current_hp1 = max(0, current_hp1)  # Ensure HP doesn't go below 0
+
+        # Update the HP bar of the first Pokémon to reflect the damage taken (red section only)
+        screen.addstr(20, 2, f"{first['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green with reserved space
+        hp_bar(screen, 20, 24, current_hp1 + damage, stats1["hp"], length=40, damage=damage)
+        screen.addstr(28, 2, f"{first['name'].capitalize()} ", curses.color_pair(1))  # Pokémon name in green
+        screen.addstr("takes ", curses.color_pair(3))  # Action text in white
+        screen.addstr(f"{damage} damage!", curses.color_pair(2))  # Damage value in red
+        screen.refresh()
+        time.sleep(1.5)
+
+        # Check if the first Pokémon is KO'd
+        if current_hp1 <= 0:
+            screen.addstr(29, 2, f"{first['name'].capitalize()} is KO!", curses.color_pair(2))  # KO message in red
             screen.refresh()
             time.sleep(2)
             return second
 
-        screen.addstr(27, 2, f"{first['name'].capitalize()} takes ", curses.color_pair(2))
-        screen.addstr(f"{damage} damage!", curses.color_pair(2))
-
-        # Update the HP bars showing the damage done
-        screen.addstr(20, 12, f"{first['name'].capitalize():<10} HP: {hp_bar(first_stats['hp'], max_hp1, length=40, damage=damage)}", curses.color_pair(1))
-
+        # Proceed to the next round
         round_number += 1
         screen.refresh()
-        time.sleep(2)  # Pause before the next round
+        time.sleep(1.5)  # Pause before the next round
 
-    return first if first_stats["hp"] > 0 else second
+    return first if current_hp1 > 0 else second
 
 
 # Function to determine the tournament winner
