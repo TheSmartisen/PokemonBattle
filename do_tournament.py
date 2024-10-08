@@ -2,6 +2,7 @@ import sqlite3
 import random
 import curses
 import time
+from get_pokemons import select_random_pokemons
 
 # Function to create HP bar using curses
 def hp_bar(stdscr, y, x, current_hp, max_hp, length=40, damage=0):
@@ -222,11 +223,7 @@ def main(screen):
     table_name = "pokemon"
 
     # Select 16 random Pokémon from the database
-    with sqlite3.connect(db_name) as conn:
-        cursor = conn.cursor()
-        cursor.execute(f"SELECT id FROM {table_name}")
-        all_ids = [row[0] for row in cursor.fetchall()]
-        pokemon_ids = random.sample(all_ids, 16)
+    pokemon_ids = select_random_pokemons(screen)
 
     characters = get_characters(db_name, table_name, pokemon_ids)
 
