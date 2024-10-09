@@ -126,14 +126,13 @@ def battle(screen, pokemon1, pokemon2, brackets):
 
     # Clear the screen and display the updated bracket before starting the match
     screen.clear()
-    display_bracket(screen, brackets)
-    hp_bar_y_offset = 20  # Start drawing HP bars below the bracket display
+    
+    #display_bracket(screen, bracket, winners)
+    screen.addstr(20, 2, f"{first['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green with reserved space
+    hp_bar(screen, 20, 24, current_hp1, stats1["hp"], length=40)  # Start health bar at column 24
+    screen.addstr(21, 2, f"{second['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green with reserved space
+    hp_bar(screen, 21, 24, current_hp2, stats2["hp"], length=40)  # Start health bar at column 24
 
-    # Display initial health bars
-    screen.addstr(hp_bar_y_offset, 2, f"{first['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green
-    hp_bar(screen, hp_bar_y_offset, 24, current_hp1, stats1["hp"], length=40)  # Start health bar at column 24
-    screen.addstr(hp_bar_y_offset + 1, 2, f"{second['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green
-    hp_bar(screen, hp_bar_y_offset + 1, 24, current_hp2, stats2["hp"], length=40)  # Start health bar at column 24
     screen.refresh()
     time.sleep(1.5)
 
