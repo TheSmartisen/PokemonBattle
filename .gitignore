@@ -167,3 +167,10 @@ cython_debug/
 
 # DataBase
 pokemon.db
+.idea/.gitignore
+.idea/misc.xml
+.idea/modules.xml
+.idea/PokemonBattle.iml
+.idea/vcs.xml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/inspectionProfiles/Project_Default.xml
