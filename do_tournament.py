@@ -105,7 +105,7 @@ def battle(screen, pokemon1, pokemon2, bracket, winners):
 
     # Draw both Pokémon with full health at the start of the match
     screen.clear()
-    display_bracket(screen, bracket, winners)
+    #display_bracket(screen, bracket, winners)
     screen.addstr(20, 2, f"{first['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green with reserved space
     hp_bar(screen, 20, 24, current_hp1, stats1["hp"], length=40)  # Start health bar at column 24
     screen.addstr(21, 2, f"{second['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green with reserved space
