@@ -3,6 +3,9 @@ import random
 import curses
 import time
 
+from get_pokemons import select_random_pokemons
+
+
 # Function to create HP bar using curses
 def hp_bar(stdscr, y, x, current_hp, max_hp, length=40, damage=0):
     # Ensure current_hp is within valid bounds
@@ -111,7 +114,7 @@ def battle(screen, pokemon1, pokemon2, bracket, winners):
     screen.addstr(21, 2, f"{second['name'].capitalize():<20}", curses.color_pair(1))  # Pokémon name in green with reserved space
     hp_bar(screen, 21, 24, current_hp2, stats2["hp"], length=40)  # Start health bar at column 24
     screen.refresh()
-    time.sleep(1.5)
+    time.sleep(0.5)
 
     while current_hp1 > 0 and current_hp2 > 0:
         # Clear damage text area for a clean slate before the next round
@@ -138,13 +141,13 @@ def battle(screen, pokemon1, pokemon2, bracket, winners):
         screen.addstr("takes ", curses.color_pair(3))  # Action text in white
         screen.addstr(f"{damage} damage!", curses.color_pair(2))  # Damage value in red
         screen.refresh()
-        time.sleep(1.5)
+        time.sleep(0.5)
 
         # Check if the second Pokémon is KO'd
         if current_hp2 <= 0:
             screen.addstr(26, 2, f"{second['name'].capitalize()} is KO!", curses.color_pair(2))  # KO message in red
             screen.refresh()
-            time.sleep(2)
+            time.sleep(0.75)
             return first
 
         # Clear damage text area for the next round
@@ -170,19 +173,19 @@ def battle(screen, pokemon1, pokemon2, bracket, winners):
         screen.addstr("takes ", curses.color_pair(3))  # Action text in white
         screen.addstr(f"{damage} damage!", curses.color_pair(2))  # Damage value in red
         screen.refresh()
-        time.sleep(1.5)
+        time.sleep(0.5)
 
         # Check if the first Pokémon is KO'd
         if current_hp1 <= 0:
             screen.addstr(29, 2, f"{first['name'].capitalize()} is KO!", curses.color_pair(2))  # KO message in red
             screen.refresh()
-            time.sleep(2)
+            time.sleep(0.75)
             return second
 
         # Proceed to the next round
         round_number += 1
         screen.refresh()
-        time.sleep(1.5)  # Pause before the next round
+        time.sleep(0.5)  # Pause before the next round
 
     return first if current_hp1 > 0 else second
 
@@ -206,7 +209,7 @@ def determine_tournament_winner(screen, bracket):
     screen.clear()
     screen.addstr(1, 2, f"Final Winner: {final_winner['name'].capitalize()}", curses.color_pair(1))
     screen.refresh()
-    time.sleep(3)
+    time.sleep(1)
 
 
 # Main function to start the tournament
@@ -214,19 +217,14 @@ def main(screen):
     curses.start_color()
 
     # Initialize colors
-    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)  # Green text for Pokémon names
+    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)  # Green text for Pokémon names
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)  # Red text for damage and attack names
     curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_BLACK)  # White text for the base health bar
 
     db_name = "pokemon.db"
     table_name = "pokemon"
 
-    # Select 16 random Pokémon from the database
-    with sqlite3.connect(db_name) as conn:
-        cursor = conn.cursor()
-        cursor.execute(f"SELECT id FROM {table_name}")
-        all_ids = [row[0] for row in cursor.fetchall()]
-        pokemon_ids = random.sample(all_ids, 16)
+    pokemon_ids = select_random_pokemons(screen)
 
     characters = get_characters(db_name, table_name, pokemon_ids)
 
@@ -236,7 +234,7 @@ def main(screen):
     else:
         screen.addstr(1, 2, "Not enough characters available for the tournament.")
         screen.refresh()
-        time.sleep(2)
+        time.sleep(0.75)
 
 
 if __name__ == "__main__":
